@@ -20,17 +20,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-#include "wmi_process.h"
-#include "wmi_process_table.h"
-
 #include <algorithm>
 #include <array>
+#include <wx/string.h>
+
+#include "daw/wmi_process.h"
+#include "daw/wmi_process_table.h"
 
 namespace daw {
-	wmi_process_table::wmi_process_table( std::wstring remote_host )
+	wmi_process_table::wmi_process_table( wxString remote_host )
 	  : m_remote_host( std::move( remote_host ) )
-	  , m_data(
-	      std::make_shared<table_data_t>( get_wmi_process( m_remote_host ) ) ) {}
+	  , m_data( std::make_shared<table_data_t>(
+	      get_wmi_process( m_remote_host.ToStdWstring( ) ) ) ) {}
 
 	wmi_process_table::wmi_process_table( std::shared_ptr<table_data_t> data )
 	  : m_data( std::move( data ) ) {}
@@ -105,13 +106,13 @@ namespace daw {
 	}
 
 	void wmi_process_table::update_data( ) {
-		auto ptr =
-		  std::make_shared<table_data_t>( get_wmi_process( m_remote_host ) );
+		auto ptr = std::make_shared<table_data_t>(
+		  get_wmi_process( m_remote_host.ToStdWstring( ) ) );
 		sort_table_on_column( *ptr, sorted.column, sorted.sort_order );
 		m_data = std::move( ptr );
 	}
 
-	void wmi_process_table::change_host( std::wstring const &remote_host ) {
+	void wmi_process_table::change_host( wxString const &remote_host ) {
 		m_remote_host = remote_host;
 		update_data( );
 	}

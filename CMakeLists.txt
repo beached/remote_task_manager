@@ -1,0 +1,33 @@
+cmake_minimum_required(VERSION 3.1)
+project(remote_task_management CXX)
+
+set(wxWidgets_CONFIGURATION mswu)
+find_package(wxWidgets REQUIRED adv core base)
+include( ${wxWidgets_USE_FILE} )
+
+set( CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard whose features are requested.")
+
+set( HEADER_FOLDER "include" )
+set( SOURCE_FOLDER "src" )
+
+set( HEADER_FILES
+	${HEADER_FOLDER}/daw/wmi_process_table.h
+	${HEADER_FOLDER}/daw/column_items.h
+	${HEADER_FOLDER}/daw/remote_task_management.h
+	${HEADER_FOLDER}/daw/remote_task_management_frame.h
+	${HEADER_FOLDER}/daw/variant_visit.h
+	${HEADER_FOLDER}/daw/wmi_process.h
+)
+
+set( SOURCE_FILES 
+	${SOURCE_FOLDER}/remote_task_management.cpp
+	${SOURCE_FOLDER}/remote_task_management_frame.cpp
+	${SOURCE_FOLDER}/wmi_process.cpp
+	${SOURCE_FOLDER}/wmi_process_table.cpp
+	${SOURCE_FOLDER}/column_items.cpp
+)
+
+include_directories( ${HEADER_FOLDER} )
+
+add_executable( remote_task_management_bin WIN32 ${HEADER_FILES} ${SOURCE_FILES} )
+target_link_libraries( remote_task_management_bin ${wxWidgets_LIBRARIES} )

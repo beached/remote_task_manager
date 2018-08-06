@@ -20,23 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-#include "column_items.h"
-
 #include <iomanip>
 #include <sstream>
 #include <wx/string.h>
 
-#ifdef _DEBUG
-#pragma comment( lib, "wxbase31ud.lib" )
-#pragma comment( lib, "wxmsw31ud_adv.lib" )
-#pragma comment( lib, "wxmsw31ud_core.lib" )
-#pragma comment( lib, "wxmsw31ud_gl.lib" )
-#else
-#pragma comment( lib, "wxbase31u.lib" )
-#pragma comment( lib, "wxmsw31u_adv.lib" )
-#pragma comment( lib, "wxmsw31u_core.lib" )
-#pragma comment( lib, "wxmsw31u_gl.lib" )
-#endif
+#include "daw/column_items.h"
 
 namespace daw {
 	namespace {

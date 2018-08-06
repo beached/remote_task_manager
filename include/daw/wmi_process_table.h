@@ -33,7 +33,7 @@ namespace daw {
 		enum class SortOrder : uint_fast8_t { Next, Ascending, Descending };
 
 	private:
-		std::wstring m_remote_host;
+		wxString m_remote_host;
 		std::shared_ptr<table_data_t> m_data;
 
 		struct sorted_t {
@@ -42,7 +42,7 @@ namespace daw {
 		} sorted;
 
 	public:
-		explicit wmi_process_table( std::wstring remote_host = L"." );
+		explicit wmi_process_table( wxString remote_host = L"." );
 		explicit wmi_process_table( std::shared_ptr<table_data_t> data );
 		explicit wmi_process_table( table_data_t const &data );
 		explicit wmi_process_table( table_data_t &&data );
@@ -62,7 +62,7 @@ namespace daw {
 		}
 
 		void update_data( );
-		void change_host( std::wstring const &remote_host = L"." );
+		void change_host( wxString const &remote_host = L"." );
 
 		inline bool IsEmptyCell( int, int ) override {
 			return false;

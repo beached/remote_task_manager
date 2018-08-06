@@ -20,13 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-#include "remote_task_management_frame.h"
-
 #include <wx/menu.h>
 #include <wx/wx.h>
+#include <wx/string.h>
 
-#include "wmi_process.h"
-#include "wmi_process_table.h"
+#include "daw/remote_task_management_frame.h"
+#include "daw/wmi_process.h"
+#include "daw/wmi_process_table.h"
 
 namespace daw {
 	namespace remote_task_management_frame_event_ids {

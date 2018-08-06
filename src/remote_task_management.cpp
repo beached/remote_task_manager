@@ -20,20 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-#include "remote_task_management.h"
-#include "remote_task_management_frame.h"
 
-#ifdef _DEBUG
-#pragma comment( lib, "wxbase31ud.lib" )
-#pragma comment( lib, "wxmsw31ud_adv.lib" )
-#pragma comment( lib, "wxmsw31ud_core.lib" )
-#pragma comment( lib, "wxmsw31ud_gl.lib" )
-#else
-#pragma comment( lib, "wxbase31u.lib" )
-#pragma comment( lib, "wxmsw31u_adv.lib" )
-#pragma comment( lib, "wxmsw31u_core.lib" )
-#pragma comment( lib, "wxmsw31u_gl.lib" )
-#endif
+#include <wx/app.h>
+
+#include "daw/remote_task_management.h"
+#include "daw/remote_task_management_frame.h"
 
 namespace daw {
 	bool remote_task_management_app::OnInit( ) {

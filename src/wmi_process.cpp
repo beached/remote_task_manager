@@ -28,9 +28,11 @@
 #include <utility>
 #include <vector>
 #include <wbemidl.h>
+#include <wx/datetime.h>
+#include <wx/string.h>
 
-#include "variant_visit.h"
-#include "wmi_process.h"
+#include "daw/variant_visit.h"
+#include "daw/wmi_process.h"
 
 #pragma comment( lib, "wbemuuid.lib" )
 
