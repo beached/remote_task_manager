@@ -217,14 +217,15 @@ namespace daw {
 			return result;
 		}
 
-		template<typename T>
-		T from_bstr( BSTR str ) noexcept {
-			auto const first = &str[0];
-			return from_char_range<T>( first, first + SysStringLen( str ) );
-		}
+		template<typename Result>
+		struct unsigned_from_bstr {
+			constexpr Result operator( )( BSTR str ) const noexcept {
+				auto const first = &str[0];
+				return from_char_range<Result>( first, first + SysStringLen( str ) );
+			}
+		};
 
 		wxDateTime from_variant_date( DATE var_dte ) {
-
 			SYSTEMTIME st = {0};
 			auto const ret_val = VariantTimeToSystemTime( var_dte, &st );
 			if( ret_val == FALSE ) {
@@ -246,10 +247,12 @@ namespace daw {
 		                std::wstring const &property ) {
 
 			return variant_visit<Result>(
-			  get_property( obj, property ), []( Result value ) { return value; },
+			  get_property( obj, property ),
+			  []( Result const &value ) { return value; },
+			  []( Result &&value ) { return std::move( value ); },
 
 			  /* some ints are encoded as strings */
-			  []( BSTR str ) { return from_bstr<Result>( str ); },
+			  unsigned_from_bstr<Result>{},
 
 			  /* do not fail */
 			  []( ) { return 0; } );

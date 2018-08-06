@@ -61,8 +61,11 @@ namespace daw {
 
 	wxString wmi_process_table::GetValue( int row, int col ) {
 		auto const tmp_data = m_data;
-		auto const &record = ( *tmp_data )[row];
-		return record[col].to_string( );
+		if( row < tmp_data->size( ) ) {
+			auto const &record = ( *tmp_data )[row];
+			return record[col].to_string( );
+		}
+		return wxString{};
 	}
 
 	wxString wmi_process_table::GetColLabelValue( int col ) {
