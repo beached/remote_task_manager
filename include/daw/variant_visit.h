@@ -74,7 +74,7 @@ namespace daw {
 		  std::enable_if_t<(not_void<Result> && std::is_invocable_v<Visitor>),
 		                   std::nullptr_t> = nullptr>
 		constexpr Result variant_visitor_empty( Visitor &&visitor ) {
-			return static_cast<Result>( visitor( ) );
+			return static_cast<Result>( std::forward<Visitor>( visitor )( ) );
 		}
 
 		// void result
@@ -82,7 +82,7 @@ namespace daw {
 		         std::enable_if_t<(is_void<Result> && std::is_invocable_v<Visitor>),
 		                          std::nullptr_t> = nullptr>
 		constexpr void variant_visitor_empty( Visitor &&visitor ) {
-			visitor( );
+			std::forward<Visitor>( visitor )( );
 		}
 
 		// VT_NULL
@@ -91,7 +91,8 @@ namespace daw {
 		                           std::is_invocable_v<Visitor, null_value>),
 		                          std::nullptr_t> = nullptr>
 		constexpr Result variant_visitor_null( Visitor &&visitor ) {
-			return static_cast<Result>( visitor( null_value{} ) );
+			return static_cast<Result>(
+			  std::forward<Visitor>( visitor )( null_value{} ) );
 		}
 
 		template<typename Result, typename Visitor,
@@ -100,7 +101,7 @@ namespace daw {
 		                           std::is_invocable_v<Visitor>),
 		                          std::nullptr_t> = nullptr>
 		constexpr Result variant_visitor_null( Visitor &&visitor ) {
-			return static_cast<Result>( visitor( ) );
+			return static_cast<Result>( std::forward<Visitor>( visitor )( ) );
 		}
 
 		// void result
@@ -109,7 +110,7 @@ namespace daw {
 		                           std::is_invocable_v<Visitor, null_value>),
 		                          std::nullptr_t> = nullptr>
 		constexpr void variant_visitor_null( Visitor &&visitor ) {
-			visitor( null_value{} );
+			std::forward<Visitor>( visitor )( null_value{} );
 		}
 
 		template<typename Result, typename Visitor,
@@ -118,7 +119,7 @@ namespace daw {
 		                           std::is_invocable_v<Visitor>),
 		                          std::nullptr_t> = nullptr>
 		constexpr void variant_visitor_null( Visitor &&visitor ) {
-			visitor( );
+			std::forward<Visitor>( visitor )( );
 		}
 
 		// Others
