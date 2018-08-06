@@ -30,7 +30,7 @@
 
 namespace daw {
 	namespace remote_task_management_frame_event_ids {
-		enum event_ids { id_open_remote = 1001 };
+		enum event_ids { id_open_remote = 1 };
 	}
 
 	remote_task_management_frame::remote_task_management_frame(
@@ -42,8 +42,8 @@ namespace daw {
 
 		Bind( wxEVT_COMMAND_MENU_SELECTED,
 		      [&]( wxCommandEvent & ) {
-			      wxMessageBox( "This is a wxWidgets' Hello world sample",
-			                    "About Hello World", wxOK | wxICON_INFORMATION );
+			      wxMessageBox( L"Remote Task Management\nby Darrell Wright\nRemotely manage windows processes",
+			                    L"About Remote Task Management", wxOK | wxICON_INFORMATION );
 		      },
 		      wxID_ABOUT );
 
@@ -55,7 +55,7 @@ namespace daw {
 				SetStatusText( L"Connected to " + dlg->GetValue( ) );
 				m_data_grid->ForceRefresh( );
 			}
-		} );
+		}, remote_task_management_frame_event_ids::id_open_remote );
 
 		auto menu_file = new wxMenu( );
 		menu_file->Append( remote_task_management_frame_event_ids::id_open_remote,
