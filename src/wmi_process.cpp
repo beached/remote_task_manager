@@ -252,7 +252,7 @@ namespace daw {
 			  []( BSTR str ) { return from_bstr<Result>( str ); },
 
 			  /* do not fail */
-			  []( ... ) { return 0; } );
+			  []( ) { return 0; } );
 		}
 
 		wxDateTime get_datetime( CComPtr<IWbemClassObject> const &obj,
