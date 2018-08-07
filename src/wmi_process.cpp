@@ -148,6 +148,7 @@ namespace daw {
 				if( FAILED( result ) ) {
 					throw wmi_error_t{std::wstring( L"Could not connect" ), result};
 				}
+				set_proxy_blanket( );
 			}
 
 			void set_proxy_blanket( ) {
@@ -277,54 +278,62 @@ namespace daw {
 			return kilobyte_value * static_cast<T>( 1024 );
 		}
 
-		wmi_process make_wmi_process( CComPtr<IWbemClassObject> &record ) {
-			auto item = wmi_process{};
-			item.name = get_wstring( record, L"Name" );
-			item.command_line = get_wstring( record, L"CommandLine" );
-			item.process_id = get_int<uint32_t>( record, L"ProcessId" );
-			item.parent_process_id = get_int<uint32_t>( record, L"ParentProcessId" );
-			item.session_id = get_int<uint32_t>( record, L"SessionId" );
-			item.creation_date = get_datetime( record, L"CreationDate" );
-			item.thread_count = get_int<uint32_t>( record, L"ThreadCount" );
-			item.page_faults = get_int<uint32_t>( record, L"PageFaults" );
-			item.page_file_usage =
-			  from_kilobytes( get_int<uint64_t>( record, L"PageFileUsage" ) );
+		struct make_wmi_process {
+			wmi_process operator( )( CComPtr<IWbemClassObject> &record ) const {
+				auto item = wmi_process{};
+				item.name = get_wstring( record, L"Name" );
+				item.command_line = get_wstring( record, L"CommandLine" );
+				item.process_id = get_int<uint32_t>( record, L"ProcessId" );
+				item.parent_process_id =
+				  get_int<uint32_t>( record, L"ParentProcessId" );
+				item.session_id = get_int<uint32_t>( record, L"SessionId" );
+				item.creation_date = get_datetime( record, L"CreationDate" );
+				item.thread_count = get_int<uint32_t>( record, L"ThreadCount" );
+				item.page_faults = get_int<uint32_t>( record, L"PageFaults" );
+				item.page_file_usage =
+				  from_kilobytes( get_int<uint64_t>( record, L"PageFileUsage" ) );
 
-			item.peak_page_file_usage =
-			  from_kilobytes( get_int<uint64_t>( record, L"PeakPageFileUsage" ) );
+				item.peak_page_file_usage =
+				  from_kilobytes( get_int<uint64_t>( record, L"PeakPageFileUsage" ) );
 
-			item.working_set_size = get_int<uint32_t>( record, L"WorkingSetSize" );
+				item.working_set_size = get_int<uint32_t>( record, L"WorkingSetSize" );
 
-			item.peak_working_set_size =
-			  from_kilobytes( get_int<uint64_t>( record, L"PeakWorkingSetSize" ) );
+				item.peak_working_set_size =
+				  from_kilobytes( get_int<uint64_t>( record, L"PeakWorkingSetSize" ) );
 
-			item.read_transfer_count =
-			  get_int<uint64_t>( record, L"ReadTransferCount" );
-			item.write_transfer_count =
-			  get_int<uint64_t>( record, L"WriteTransferCount" );
-			return item;
+				item.read_transfer_count =
+				  get_int<uint64_t>( record, L"ReadTransferCount" );
+				item.write_transfer_count =
+				  get_int<uint64_t>( record, L"WriteTransferCount" );
+				return item;
+			}
+		};
+
+		template<typename Enumerator, typename OutputIterator, typename Function>
+		void transform( Enumerator &&enumerator, OutputIterator iter,
+		                Function &&func ) {
+			while( enumerator ) {
+				CComPtr<IWbemClassObject> current_record;
+				unsigned long record_count = 0;
+				auto const hr =
+				  enumerator->Next( WBEM_INFINITE, 1, &current_record, &record_count );
+				if( record_count == 0 || FAILED( hr ) ) {
+					// We have an error or no more records left
+					break;
+				}
+				*iter++ = func( current_record );
+			}
 		}
 	} // namespace
 
-	std::vector<wmi_process> get_wmi_win32_process( std::wstring const &machine ) {
+	std::vector<wmi_process>
+	get_wmi_win32_process( std::wstring const &machine ) {
 		wmi_state_t wmi_state( COINIT_APARTMENTTHREADED );
-
 		wmi_state.connect( L"ROOT\\CIMV2", machine );
-		wmi_state.set_proxy_blanket( );
 
 		auto result = std::vector<wmi_process>( );
-
-		auto enumerator = wmi_state.query( L"SELECT * FROM Win32_Process" );
-		while( enumerator ) {
-			CComPtr<IWbemClassObject> record;
-			ULONG u_return = 0;
-			auto const hr = enumerator->Next( WBEM_INFINITE, 1, &record, &u_return );
-			if( u_return == 0 || FAILED( hr ) ) {
-				// We have an error or no more records left
-				break;
-			}
-			result.emplace_back( make_wmi_process( record ) );
-		}
+		transform( wmi_state.query( L"SELECT * FROM Win32_Process" ),
+		           std::back_inserter( result ), make_wmi_process{} );
 		return result;
 	}
 } // namespace daw
