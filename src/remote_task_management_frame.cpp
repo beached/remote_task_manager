@@ -51,10 +51,18 @@ namespace daw {
 					tbl->sort_column( event.GetCol( ) );
 				} );
 				auto tmr = new wxTimer( this );
-				this->Bind( wxEVT_TIMER, [tbl, dg]( wxTimerEvent & ) {
-					tbl->update_data( );
-					dg->ForceRefresh( );
-				}, tmr->GetId() );
+				this->Bind( wxEVT_TIMER,
+				            [tmr, tbl, dg]( wxTimerEvent &event ) {
+					            try {
+						            tbl->update_data( );
+						            dg->ForceRefresh( );
+					            } catch( ... ) {
+												// TODO put error message
+						            dg->SetTable( nullptr );
+						            tmr->Stop( );
+					            }
+				            },
+				            tmr->GetId( ) );
 				tmr->Start( 1500 );
 				if( host == L"." ) {
 					m_notebook->AddPage( dg, L"local machine", true );
