@@ -218,11 +218,11 @@ namespace daw {
 			return result;
 		}
 
-		template<typename Result>
+		template<typename UnsignedInteger>
 		struct unsigned_from_bstr {
-			constexpr Result operator( )( BSTR str ) const noexcept {
+			constexpr UnsignedInteger operator( )( BSTR str ) const noexcept {
 				auto const first = &str[0];
-				return from_char_range<Result>( first, first + SysStringLen( str ) );
+				return from_char_range<UnsignedInteger>( first, first + SysStringLen( str ) );
 			}
 		};
 
@@ -246,8 +246,8 @@ namespace daw {
 		};
 
 		template<typename Integer>
-		Integer get_int( CComPtr<IWbemClassObject> const &obj,
-		                 std::wstring const &property ) {
+		Integer get_integer( CComPtr<IWbemClassObject> const &obj,
+		                     std::wstring const &property ) {
 			// Integer must be convertible from the value type stored in
 			// the VARIANT
 			return variant_visit<Integer>(
@@ -283,28 +283,29 @@ namespace daw {
 				auto item = wmi_process{};
 				item.name = get_wstring( record, L"Name" );
 				item.command_line = get_wstring( record, L"CommandLine" );
-				item.process_id = get_int<uint32_t>( record, L"ProcessId" );
+				item.process_id = get_integer<uint32_t>( record, L"ProcessId" );
 				item.parent_process_id =
-				  get_int<uint32_t>( record, L"ParentProcessId" );
-				item.session_id = get_int<uint32_t>( record, L"SessionId" );
+				  get_integer<uint32_t>( record, L"ParentProcessId" );
+				item.session_id = get_integer<uint32_t>( record, L"SessionId" );
 				item.creation_date = get_datetime( record, L"CreationDate" );
-				item.thread_count = get_int<uint32_t>( record, L"ThreadCount" );
-				item.page_faults = get_int<uint32_t>( record, L"PageFaults" );
+				item.thread_count = get_integer<uint32_t>( record, L"ThreadCount" );
+				item.page_faults = get_integer<uint32_t>( record, L"PageFaults" );
 				item.page_file_usage =
-				  from_kilobytes( get_int<uint64_t>( record, L"PageFileUsage" ) );
+				  from_kilobytes( get_integer<uint64_t>( record, L"PageFileUsage" ) );
 
-				item.peak_page_file_usage =
-				  from_kilobytes( get_int<uint64_t>( record, L"PeakPageFileUsage" ) );
+				item.peak_page_file_usage = from_kilobytes(
+				  get_integer<uint64_t>( record, L"PeakPageFileUsage" ) );
 
-				item.working_set_size = get_int<uint32_t>( record, L"WorkingSetSize" );
+				item.working_set_size =
+				  get_integer<uint32_t>( record, L"WorkingSetSize" );
 
-				item.peak_working_set_size =
-				  from_kilobytes( get_int<uint64_t>( record, L"PeakWorkingSetSize" ) );
+				item.peak_working_set_size = from_kilobytes(
+				  get_integer<uint64_t>( record, L"PeakWorkingSetSize" ) );
 
 				item.read_transfer_count =
-				  get_int<uint64_t>( record, L"ReadTransferCount" );
+				  get_integer<uint64_t>( record, L"ReadTransferCount" );
 				item.write_transfer_count =
-				  get_int<uint64_t>( record, L"WriteTransferCount" );
+				  get_integer<uint64_t>( record, L"WriteTransferCount" );
 				return item;
 			}
 		};
