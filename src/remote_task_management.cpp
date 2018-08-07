@@ -35,7 +35,6 @@ namespace daw {
 			return false;
 		}
 		auto frame = new remote_task_management_frame( m_remote_hosts, L"Remote Task Management" );
-
 		frame->Show( true );
 		return true;
 	}

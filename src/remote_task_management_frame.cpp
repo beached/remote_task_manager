@@ -34,6 +34,33 @@ namespace daw {
 		enum event_ids { id_open_remote = 1 };
 	}
 
+	void remote_task_management_frame::add_page( wxString const &host ) {
+		try {
+			auto tbl = new wmi_process_table( host );
+			if( tbl ) {
+				tbl->sort_column( wmi_process::column_number::CreationDate );
+
+				auto dg = new wxGrid( m_notebook, wxID_ANY );
+				if( !dg ) {
+					throw std::runtime_error( "Could not create data grid" );
+				}
+				dg->SetTable( tbl, true );
+				dg->HideRowLabels( );
+				dg->AutoSizeColumns( );
+				dg->Bind( wxEVT_GRID_COL_SORT, [tbl]( wxGridEvent &event ) {
+					tbl->sort_column( event.GetCol( ) );
+				} );
+				if( host == L"." ) {
+					m_notebook->AddPage( dg, L"local machine" );
+				} else {
+					m_notebook->AddPage( dg, host );
+				}
+			}
+		} catch( ... ) {
+			wxMessageBox( L"Error connecting to " + host, L"Connection error" );
+		}
+	}
+
 	remote_task_management_frame::remote_task_management_frame(
 	  std::vector<wxString> const &connect_to, wxString const &title,
 	  wxPoint const &pos, wxSize const &size )
@@ -56,9 +83,7 @@ namespace daw {
 			      auto dlg = new wxTextEntryDialog( this, L"Enter remote system name",
 			                                        L"Open remote system", L"." );
 			      if( dlg->ShowModal( ) ) {
-				      m_tbl->change_host( dlg->GetValue( ) );
-				      SetStatusText( L"Connected to " + dlg->GetValue( ) );
-				      m_data_grid->ForceRefresh( );
+				      add_page( dlg->GetValue( ) );
 			      }
 		      },
 		      remote_task_management_frame_event_ids::id_open_remote );
@@ -75,60 +100,38 @@ namespace daw {
 		auto menu_bar = new wxMenuBar( );
 		menu_bar->Append( menu_file, "&File" );
 		menu_bar->Append( menu_help, "&Help" );
-
-		m_data_grid = new wxGrid( this, wxID_ANY );
-		if( !m_data_grid ) {
-			throw std::runtime_error( "Could not create data grid" );
-		}
-
-		if( connect_to.empty( ) ) {
-			m_tbl = new wmi_process_table( );
-		} else {
-			try {
-				// TODO Add multiple hosts
-				m_tbl = new wmi_process_table( connect_to.front( ) );
-			} catch( ... ) {
-				// Could not connect ask to try local host
-				auto dlg = new wxMessageDialog(
-				  this, L"Could not connect to remote system, try local?",
-				  L"Error openning remote system", wxYES_NO );
-				if( dlg->ShowModal( ) == wxID_YES ) {
-					m_tbl = new wmi_process_table( );
-				} else {
-					Close( );
-				}
-			}
-		}
-		if( m_tbl ) {
-			m_tbl->sort_column( wmi_process::column_number::CreationDate );
-			if( m_tbl ) {
-				m_data_grid->SetTable( m_tbl, true );
-			}
-			m_data_grid->HideRowLabels( );
-			m_data_grid->AutoSizeColumns( );
-			m_data_grid->Bind( wxEVT_GRID_COL_SORT, [&]( wxGridEvent &event ) {
-				if( !m_tbl ) {
-					return;
-				}
-				m_tbl->sort_column( event.GetCol( ) );
-			} );
-			m_data_grid->ForceRefresh( );
-		}
-		m_tmr = std::make_unique<wxTimer>( );
-		m_tmr->Bind( wxEVT_TIMER, [&]( wxTimerEvent & ) {
-			m_tbl->update_data( );
-			m_data_grid->ForceRefresh( );
-		} );
-		m_tmr->Start( 1500 );
-
 		wxFrameBase::SetMenuBar( menu_bar );
 
-		wxFrameBase::CreateStatusBar( );
-		if( connect_to.empty( ) ) {
-			wxFrameBase::SetStatusText( L"Connected to local machine" );
-		} else {
-			wxFrameBase::SetStatusText( L"Connected to local " +
-			                            connect_to.front( ) );
+		auto pnl = new wxPanel( this );
+
+		m_notebook = new wxNotebook( pnl, wxID_ANY );
+		if( !m_notebook ) {
+			throw std::runtime_error( "Could not create notebook" );
 		}
+
+		auto pnl_sz = new wxBoxSizer( wxHORIZONTAL );
+		pnl_sz->Add( m_notebook, 1, wxEXPAND );
+		pnl->SetSizer( pnl_sz );
+
+		auto frm_sz = new wxBoxSizer( wxHORIZONTAL );
+		frm_sz->Add( pnl, 1, wxEXPAND );
+		frm_sz->SetMinSize( 800, 600 );
+		SetSizerAndFit( frm_sz );
+
+		if( connect_to.empty( ) ) {
+			add_page( L"." );
+		}
+		for( auto const &host : connect_to ) {
+			add_page( host );
+		}
+		/*
+		m_data_grid->ForceRefresh( );
+		m_tmr = std::make_unique<wxTimer>( );
+		m_tmr->Bind( wxEVT_TIMER, [&]( wxTimerEvent & ) {
+		  m_tbl->update_data( );
+		  m_data_grid->ForceRefresh( );
+		} );
+		m_tmr->Start( 1500 );
+		*/
 	}
 } // namespace daw

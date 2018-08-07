@@ -26,19 +26,20 @@
 #include <wx/event.h>
 #include <wx/frame.h>
 #include <wx/grid.h>
+#include <wx/notebook.h>
 #include <wx/string.h>
 
 #include "wmi_process_table.h"
 
 namespace daw {
 	class remote_task_management_frame : public wxFrame {
-		wxGrid *m_data_grid = nullptr;      // unowned
-		wmi_process_table *m_tbl = nullptr; // unowned
 		std::unique_ptr<wxTimer> m_tmr = nullptr;
+		wxNotebook *m_notebook = nullptr;	// unowned
 
+		void add_page( wxString const &host );
 	public:
 		explicit remote_task_management_frame(
-		  std::vector<wxString> const &connect_to, wxString const &title,
+		  std::vector<wxString> const & connect_to, wxString const &title,
 		  wxPoint const &pos = wxDefaultPosition,
 		  wxSize const &size = wxDefaultSize );
 	};
