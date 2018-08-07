@@ -225,37 +225,37 @@ namespace daw {
 			}
 		};
 
-		wxDateTime from_variant_date( DATE var_dte ) {
-			SYSTEMTIME st = {0};
-			auto const ret_val = VariantTimeToSystemTime( var_dte, &st );
-			if( ret_val == FALSE ) {
-				throw std::runtime_error( "Error converting DATE to wxDateTime" );
+		struct from_variant_date {
+			wxDateTime operator( )( DATE var_dte ) const {
+				SYSTEMTIME st = {0};
+				auto const ret_val = VariantTimeToSystemTime( var_dte, &st );
+				if( ret_val == FALSE ) {
+					throw std::runtime_error( "Error converting DATE to wxDateTime" );
+				}
+				std::tm tm = {0};
+				tm.tm_sec = st.wSecond;
+				tm.tm_min = st.wMinute;
+				tm.tm_hour = st.wHour;
+				tm.tm_mday = st.wDay;
+				tm.tm_mon = st.wMonth - 1;
+				tm.tm_year = st.wYear - 1900;
+				tm.tm_isdst = -1;
+				return wxDateTime( tm );
 			}
-			std::tm tm = {0};
-			tm.tm_sec = st.wSecond;
-			tm.tm_min = st.wMinute;
-			tm.tm_hour = st.wHour;
-			tm.tm_mday = st.wDay;
-			tm.tm_mon = st.wMonth - 1;
-			tm.tm_year = st.wYear - 1900;
-			tm.tm_isdst = -1;
-			return wxDateTime( tm );
-		}
+		};
 
-		template<typename Result>
-		Result get_int( CComPtr<IWbemClassObject> const &obj,
-		                std::wstring const &property ) {
-
-			return variant_visit<Result>(
+		template<typename Integer>
+		Integer get_int( CComPtr<IWbemClassObject> const &obj,
+		                 std::wstring const &property ) {
+			// Integer must be convertible from the value type stored in
+			// the VARIANT
+			return variant_visit<Integer>(
 			  get_property( obj, property ),
-			  []( Result const &value ) { return value; },
-			  []( Result &&value ) { return std::move( value ); },
-
-			  /* some ints are encoded as strings */
-			  unsigned_from_bstr<Result>{},
-
-			  /* do not fail */
-			  []( ) { return 0; } );
+			  []( Integer const &value ) { return value; },
+			  []( Integer &&value ) { return std::move( value ); },
+			  unsigned_from_bstr<Integer>{}, /* some ints are encoded as strings */
+			  []( ) { return 0; }            /* do not fail */
+			);
 		}
 
 		wxDateTime get_datetime( CComPtr<IWbemClassObject> const &obj,
@@ -269,16 +269,44 @@ namespace daw {
 				  }
 				  return result;
 			  },
-			  []( DATE dte ) { return from_variant_date( dte ); } );
+			  from_variant_date{} );
 		}
 
 		template<typename T>
-		constexpr T to_bytes( T kilobyte_value ) noexcept {
+		constexpr T from_kilobytes( T kilobyte_value ) noexcept {
 			return kilobyte_value * static_cast<T>( 1024 );
+		}
+
+		wmi_process make_wmi_process( CComPtr<IWbemClassObject> &record ) {
+			auto item = wmi_process{};
+			item.name = get_wstring( record, L"Name" );
+			item.command_line = get_wstring( record, L"CommandLine" );
+			item.process_id = get_int<uint32_t>( record, L"ProcessId" );
+			item.parent_process_id = get_int<uint32_t>( record, L"ParentProcessId" );
+			item.session_id = get_int<uint32_t>( record, L"SessionId" );
+			item.creation_date = get_datetime( record, L"CreationDate" );
+			item.thread_count = get_int<uint32_t>( record, L"ThreadCount" );
+			item.page_faults = get_int<uint32_t>( record, L"PageFaults" );
+			item.page_file_usage =
+			  from_kilobytes( get_int<uint64_t>( record, L"PageFileUsage" ) );
+
+			item.peak_page_file_usage =
+			  from_kilobytes( get_int<uint64_t>( record, L"PeakPageFileUsage" ) );
+
+			item.working_set_size = get_int<uint32_t>( record, L"WorkingSetSize" );
+
+			item.peak_working_set_size =
+			  from_kilobytes( get_int<uint64_t>( record, L"PeakWorkingSetSize" ) );
+
+			item.read_transfer_count =
+			  get_int<uint64_t>( record, L"ReadTransferCount" );
+			item.write_transfer_count =
+			  get_int<uint64_t>( record, L"WriteTransferCount" );
+			return item;
 		}
 	} // namespace
 
-	std::vector<wmi_process> get_wmi_process( std::wstring const &machine ) {
+	std::vector<wmi_process> get_wmi_win32_process( std::wstring const &machine ) {
 		wmi_state_t wmi_state( COINIT_APARTMENTTHREADED );
 
 		wmi_state.connect( L"ROOT\\CIMV2", machine );
@@ -288,39 +316,14 @@ namespace daw {
 
 		auto enumerator = wmi_state.query( L"SELECT * FROM Win32_Process" );
 		while( enumerator ) {
-			CComPtr<IWbemClassObject> cur_rec;
+			CComPtr<IWbemClassObject> record;
 			ULONG u_return = 0;
-			auto const hr = enumerator->Next( WBEM_INFINITE, 1, &cur_rec, &u_return );
+			auto const hr = enumerator->Next( WBEM_INFINITE, 1, &record, &u_return );
 			if( u_return == 0 || FAILED( hr ) ) {
 				// We have an error or no more records left
 				break;
 			}
-
-			auto item = wmi_process{};
-			item.name = get_wstring( cur_rec, L"Name" );
-			item.command_line = get_wstring( cur_rec, L"CommandLine" );
-			item.process_id = get_int<uint32_t>( cur_rec, L"ProcessId" );
-			item.parent_process_id = get_int<uint32_t>( cur_rec, L"ParentProcessId" );
-			item.session_id = get_int<uint32_t>( cur_rec, L"SessionId" );
-			item.creation_date = get_datetime( cur_rec, L"CreationDate" );
-			item.thread_count = get_int<uint32_t>( cur_rec, L"ThreadCount" );
-			item.page_faults = get_int<uint32_t>( cur_rec, L"PageFaults" );
-			item.page_file_usage =
-			  to_bytes( get_int<uint64_t>( cur_rec, L"PageFileUsage" ) );
-
-			item.peak_page_file_usage =
-			  to_bytes( get_int<uint64_t>( cur_rec, L"PeakPageFileUsage" ) );
-
-			item.working_set_size = get_int<uint32_t>( cur_rec, L"WorkingSetSize" );
-
-			item.peak_working_set_size =
-			  to_bytes( get_int<uint64_t>( cur_rec, L"PeakWorkingSetSize" ) );
-
-			item.read_transfer_count =
-			  get_int<uint64_t>( cur_rec, L"ReadTransferCount" );
-			item.write_transfer_count =
-			  get_int<uint64_t>( cur_rec, L"WriteTransferCount" );
-			result.push_back( std::move( item ) );
+			result.emplace_back( make_wmi_process( record ) );
 		}
 		return result;
 	}

@@ -120,5 +120,5 @@ namespace daw {
 		}
 	};
 
-	std::vector<wmi_process> get_wmi_process( std::wstring const &machine = L"" );
+	std::vector<wmi_process> get_wmi_win32_process( std::wstring const &machine = L"" );
 } // namespace daw

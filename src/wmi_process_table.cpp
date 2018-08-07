@@ -31,7 +31,7 @@ namespace daw {
 	wmi_process_table::wmi_process_table( wxString remote_host )
 	  : m_remote_host( std::move( remote_host ) )
 	  , m_data( std::make_shared<table_data_t>(
-	      get_wmi_process( m_remote_host.ToStdWstring( ) ) ) ) {}
+	      get_wmi_win32_process( m_remote_host.ToStdWstring( ) ) ) ) {}
 
 	wmi_process_table::wmi_process_table( std::shared_ptr<table_data_t> data )
 	  : m_data( std::move( data ) ) {}
@@ -110,7 +110,7 @@ namespace daw {
 
 	void wmi_process_table::update_data( ) {
 		auto ptr = std::make_shared<table_data_t>(
-		  get_wmi_process( m_remote_host.ToStdWstring( ) ) );
+		  get_wmi_win32_process( m_remote_host.ToStdWstring( ) ) );
 		sort_table_on_column( *ptr, sorted.column, sorted.sort_order );
 		m_data = std::move( ptr );
 	}
