@@ -34,12 +34,16 @@
 namespace daw {
 	class remote_task_management_frame : public wxFrame {
 		std::unique_ptr<wxTimer> m_tmr = nullptr;
-		wxNotebook *m_notebook = nullptr;	// unowned
+		wxNotebook *m_notebook = nullptr; // unowned
 
 		void add_page( wxString const &host );
+		void setup_handlers( );
+		void setup_menus( );
+		void setup_notebook( );
+
 	public:
 		explicit remote_task_management_frame(
-		  std::vector<wxString> const & connect_to, wxString const &title,
+		  std::vector<wxString> const &connect_to, wxString const &title,
 		  wxPoint const &pos = wxDefaultPosition,
 		  wxSize const &size = wxDefaultSize );
 	};

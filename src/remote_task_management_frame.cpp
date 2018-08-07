@@ -50,10 +50,16 @@ namespace daw {
 				dg->Bind( wxEVT_GRID_COL_SORT, [tbl]( wxGridEvent &event ) {
 					tbl->sort_column( event.GetCol( ) );
 				} );
+				auto tmr = new wxTimer( this );
+				this->Bind( wxEVT_TIMER, [tbl, dg]( wxTimerEvent & ) {
+					tbl->update_data( );
+					dg->ForceRefresh( );
+				}, tmr->GetId() );
+				tmr->Start( 1500 );
 				if( host == L"." ) {
-					m_notebook->AddPage( dg, L"local machine" );
+					m_notebook->AddPage( dg, L"local machine", true );
 				} else {
-					m_notebook->AddPage( dg, host );
+					m_notebook->AddPage( dg, host, true );
 				}
 			}
 		} catch( ... ) {
@@ -61,11 +67,7 @@ namespace daw {
 		}
 	}
 
-	remote_task_management_frame::remote_task_management_frame(
-	  std::vector<wxString> const &connect_to, wxString const &title,
-	  wxPoint const &pos, wxSize const &size )
-	  : wxFrame( nullptr, wxID_ANY, title, pos, size ) {
-
+	void remote_task_management_frame::setup_handlers( ) {
 		Bind( wxEVT_COMMAND_MENU_SELECTED, [&]( wxCommandEvent & ) { Close( ); },
 		      wxID_EXIT );
 
@@ -87,7 +89,9 @@ namespace daw {
 			      }
 		      },
 		      remote_task_management_frame_event_ids::id_open_remote );
+	}
 
+	void remote_task_management_frame::setup_menus( ) {
 		auto menu_file = new wxMenu( );
 		menu_file->Append( remote_task_management_frame_event_ids::id_open_remote,
 		                   L"&Open Remote\tCtrl-O", L"Open task on remote system" );
@@ -101,7 +105,9 @@ namespace daw {
 		menu_bar->Append( menu_file, "&File" );
 		menu_bar->Append( menu_help, "&Help" );
 		wxFrameBase::SetMenuBar( menu_bar );
+	}
 
+	void remote_task_management_frame::setup_notebook( ) {
 		auto pnl = new wxPanel( this );
 
 		m_notebook = new wxNotebook( pnl, wxID_ANY );
@@ -117,21 +123,23 @@ namespace daw {
 		frm_sz->Add( pnl, 1, wxEXPAND );
 		frm_sz->SetMinSize( 800, 600 );
 		SetSizerAndFit( frm_sz );
+	}
 
+	remote_task_management_frame::remote_task_management_frame(
+	  std::vector<wxString> const &connect_to, wxString const &title,
+	  wxPoint const &pos, wxSize const &size )
+	  : wxFrame( nullptr, wxID_ANY, title, pos, size ) {
+
+		setup_handlers( );
+		setup_menus( );
+		setup_notebook( );
+
+		// Add hosts
 		if( connect_to.empty( ) ) {
 			add_page( L"." );
 		}
 		for( auto const &host : connect_to ) {
 			add_page( host );
 		}
-		/*
-		m_data_grid->ForceRefresh( );
-		m_tmr = std::make_unique<wxTimer>( );
-		m_tmr->Bind( wxEVT_TIMER, [&]( wxTimerEvent & ) {
-		  m_tbl->update_data( );
-		  m_data_grid->ForceRefresh( );
-		} );
-		m_tmr->Start( 1500 );
-		*/
 	}
 } // namespace daw
