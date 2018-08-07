@@ -14,6 +14,8 @@ set( SOURCE_FOLDER "src" )
 
 set( HEADER_FILES
 	${HEADER_FOLDER}/daw/column_items.h
+	${HEADER_FOLDER}/daw/daw_overload.h
+	${HEADER_FOLDER}/daw/daw_helpers.h
 	${HEADER_FOLDER}/daw/remote_task_management.h
 	${HEADER_FOLDER}/daw/remote_task_management_frame.h
 	${HEADER_FOLDER}/daw/wmi_process.h
@@ -28,6 +30,8 @@ set( SOURCE_FILES
 	${SOURCE_FOLDER}/wmi_process.cpp
 	${SOURCE_FOLDER}/wmi_process_table.cpp
 )
+
+include_directories( SYSTEM "${CMAKE_BINARY_DIR}/install/include" )
 
 include_directories( ${HEADER_FOLDER} )
 

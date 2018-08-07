@@ -22,10 +22,18 @@
 //
 #pragma once
 
+#include <vector>
 #include <wx/app.h>
+#include <wx/string.h>
 
 namespace daw {
-	struct remote_task_management_app : wxApp {
+	class remote_task_management_app : public wxApp {
+		std::vector<wxString> m_remote_hosts;
+
+	public:
+		remote_task_management_app( ) = default;
 		bool OnInit( ) override;
+		void OnInitCmdLine( wxCmdLineParser &parser ) override;
+		bool OnCmdLineParsed( wxCmdLineParser &parser ) override;
 	};
 } // namespace daw

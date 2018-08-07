@@ -22,9 +22,11 @@
 //
 #pragma once
 
+#include <vector>
 #include <wx/event.h>
 #include <wx/frame.h>
 #include <wx/grid.h>
+#include <wx/string.h>
 
 #include "wmi_process_table.h"
 
@@ -35,8 +37,9 @@ namespace daw {
 		std::unique_ptr<wxTimer> m_tmr = nullptr;
 
 	public:
-		remote_task_management_frame( wxString const &title,
-		                              wxPoint const &pos = wxDefaultPosition,
-		                              wxSize const &size = wxDefaultSize );
+		explicit remote_task_management_frame(
+		  std::vector<wxString> const &connect_to, wxString const &title,
+		  wxPoint const &pos = wxDefaultPosition,
+		  wxSize const &size = wxDefaultSize );
 	};
 } // namespace daw

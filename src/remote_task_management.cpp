@@ -22,17 +22,49 @@
 //
 
 #include <wx/app.h>
+#include <wx/cmdline.h>
+#include <wx/wx.h>
 
+#include "daw/daw_helpers.h"
 #include "daw/remote_task_management.h"
 #include "daw/remote_task_management_frame.h"
 
 namespace daw {
 	bool remote_task_management_app::OnInit( ) {
-		auto frame = new remote_task_management_frame( L"Remote Task Management" );
+		if( !wxApp::OnInit( ) ) {
+			return false;
+		}
+		auto frame = new remote_task_management_frame( m_remote_hosts, L"Remote Task Management" );
 
 		frame->Show( true );
 		return true;
 	}
 
-	wxIMPLEMENT_APP( remote_task_management_app );
+	void remote_task_management_app::OnInitCmdLine( wxCmdLineParser &parser ) {
+		using T = wxCmdLineEntryDesc;
+		static auto const cmd_line_desc = daw::make_array<T>(
+		  T{wxCMD_LINE_SWITCH, "h", "help",
+		    "displays help on the command line parameters\n", wxCMD_LINE_VAL_NONE,
+		    wxCMD_LINE_OPTION_HELP},
+
+		  T{wxCMD_LINE_PARAM, nullptr, nullptr,
+		    "host(s) (. can be used for local machine)\n",
+		    wxCMD_LINE_VAL_STRING,
+		    wxCMD_LINE_PARAM_OPTIONAL | wxCMD_LINE_PARAM_MULTIPLE},
+
+		  T{wxCMD_LINE_NONE} );
+
+		parser.SetDesc( cmd_line_desc.data( ) );
+		parser.SetSwitchChars( "-" );
+	}
+
+	bool
+	daw::remote_task_management_app::OnCmdLineParsed( wxCmdLineParser &parser ) {
+		for( size_t n = 0; n < parser.GetParamCount( ); ++n ) {
+			m_remote_hosts.push_back( parser.GetParam( n ) );
+		}
+		return true;
+	}
 } // namespace daw
+
+wxIMPLEMENT_APP( daw::remote_task_management_app );

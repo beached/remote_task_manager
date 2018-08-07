@@ -20,9 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
+#include <vector>
 #include <wx/menu.h>
-#include <wx/wx.h>
 #include <wx/string.h>
+#include <wx/wx.h>
 
 #include "daw/remote_task_management_frame.h"
 #include "daw/wmi_process.h"
@@ -34,7 +35,8 @@ namespace daw {
 	}
 
 	remote_task_management_frame::remote_task_management_frame(
-	  wxString const &title, wxPoint const &pos, wxSize const &size )
+	  std::vector<wxString> const &connect_to, wxString const &title,
+	  wxPoint const &pos, wxSize const &size )
 	  : wxFrame( nullptr, wxID_ANY, title, pos, size ) {
 
 		Bind( wxEVT_COMMAND_MENU_SELECTED, [&]( wxCommandEvent & ) { Close( ); },
@@ -42,20 +44,24 @@ namespace daw {
 
 		Bind( wxEVT_COMMAND_MENU_SELECTED,
 		      [&]( wxCommandEvent & ) {
-			      wxMessageBox( L"Remote Task Management\nby Darrell Wright\nRemotely manage windows processes",
-			                    L"About Remote Task Management", wxOK | wxICON_INFORMATION );
+			      wxMessageBox(
+			        L"Remote Task Management\nby Darrell Wright\nRemotely manage "
+			        L"windows processes",
+			        L"About Remote Task Management", wxOK | wxICON_INFORMATION );
 		      },
 		      wxID_ABOUT );
 
-		Bind( wxEVT_COMMAND_MENU_SELECTED, [&]( wxCommandEvent & ) {
-			auto dlg = new wxTextEntryDialog( this, L"Enter remote system name",
-			                                  L"Open remote system", L"." );
-			if( dlg->ShowModal( ) ) {
-				m_tbl->change_host( dlg->GetValue( ) );
-				SetStatusText( L"Connected to " + dlg->GetValue( ) );
-				m_data_grid->ForceRefresh( );
-			}
-		}, remote_task_management_frame_event_ids::id_open_remote );
+		Bind( wxEVT_COMMAND_MENU_SELECTED,
+		      [&]( wxCommandEvent & ) {
+			      auto dlg = new wxTextEntryDialog( this, L"Enter remote system name",
+			                                        L"Open remote system", L"." );
+			      if( dlg->ShowModal( ) ) {
+				      m_tbl->change_host( dlg->GetValue( ) );
+				      SetStatusText( L"Connected to " + dlg->GetValue( ) );
+				      m_data_grid->ForceRefresh( );
+			      }
+		      },
+		      remote_task_management_frame_event_ids::id_open_remote );
 
 		auto menu_file = new wxMenu( );
 		menu_file->Append( remote_task_management_frame_event_ids::id_open_remote,
@@ -75,7 +81,24 @@ namespace daw {
 			throw std::runtime_error( "Could not create data grid" );
 		}
 
-		m_tbl = new wmi_process_table( );
+		if( connect_to.empty( ) ) {
+			m_tbl = new wmi_process_table( );
+		} else {
+			try {
+				// TODO Add multiple hosts
+				m_tbl = new wmi_process_table( connect_to.front( ) );
+			} catch( ... ) {
+				// Could not connect ask to try local host
+				auto dlg = new wxMessageDialog(
+				  this, L"Could not connect to remote system, try local?",
+				  L"Error openning remote system", wxYES_NO );
+				if( dlg->ShowModal( ) == wxID_YES ) {
+					m_tbl = new wmi_process_table( );
+				} else {
+					Close( );
+				}
+			}
+		}
 		if( m_tbl ) {
 			m_tbl->sort_column( wmi_process::column_number::CreationDate );
 			if( m_tbl ) {
@@ -101,6 +124,11 @@ namespace daw {
 		wxFrameBase::SetMenuBar( menu_bar );
 
 		wxFrameBase::CreateStatusBar( );
-		wxFrameBase::SetStatusText( L"Connected to local machine" );
+		if( connect_to.empty( ) ) {
+			wxFrameBase::SetStatusText( L"Connected to local machine" );
+		} else {
+			wxFrameBase::SetStatusText( L"Connected to local " +
+			                            connect_to.front( ) );
+		}
 	}
 } // namespace daw
