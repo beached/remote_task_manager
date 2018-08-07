@@ -41,36 +41,30 @@ namespace daw {
 
 	struct Memory : ColumnItem {
 		uint64_t value = 0;
+		wxString str_value = L"";
 
-		Memory( ) noexcept = default;
+		Memory( ) = default;
 
-		Memory( uint64_t v ) noexcept
-		  : value( v ) {}
+		Memory( uint64_t v );
 
-		Memory &operator=( uint64_t v ) noexcept {
-			value = v;
-			return *this;
-		}
+		Memory &operator=( uint64_t v );
 
 		int compare( ColumnItem const &rhs ) const override;
 		wxString to_string( ) const override;
 	};
 
 	struct Date : ColumnItem {
-		wxDateTime value;
 		enum class date_formats { Combined, DateOnly, TimeOnly };
+
+		wxDateTime value = {};
+		wxString str_value = L"";
 		date_formats date_format = date_formats::Combined;
 
 		Date( ) = default;
 
-		Date( wxDateTime tp, date_formats fmt )
-		  : value( tp )
-		  , date_format( fmt ) {}
+		Date( wxDateTime tp, date_formats fmt );
 
-		Date &operator=( wxDateTime v ) {
-			value = v;
-			return *this;
-		}
+		Date &operator=( wxDateTime v );
 
 		int compare( ColumnItem const &rhs ) const override;
 		wxString to_string( ) const override;
@@ -79,14 +73,17 @@ namespace daw {
 	template<typename T>
 	struct Integer : ColumnItem {
 		T value = 0;
+		wxString str_value = L"";
 
 		Integer( ) noexcept = default;
 
 		Integer( uint64_t v ) noexcept
-		  : value( v ) {}
+		  : value( v )
+		  , str_value( std::to_wstring( value ) ) {}
 
 		Integer &operator=( uint64_t v ) noexcept {
 			value = v;
+			str_value = std::to_wstring( value );
 			return *this;
 		}
 
@@ -102,9 +99,7 @@ namespace daw {
 		}
 
 		wxString to_string( ) const override {
-			using std::to_wstring;
-			using std::to_wstring;
-			return to_wstring( value );
+			return str_value;
 		}
 	};
 
@@ -112,21 +107,10 @@ namespace daw {
 		wxString value = L"";
 
 		String( ) = default;
-		String( wxString const &str )
-		  : value( str ) {}
-		String( std::wstring const &str )
-		  : value( str ) {}
-
-		String &operator=( wxString const &str ) {
-			value = str;
-			return *this;
-		}
-
-		String &operator=( std::wstring const &str ) {
-			value = str;
-			return *this;
-		}
-
+		explicit String( wxString const &str );
+		explicit String( std::wstring const &str );
+		String &operator=( wxString const &str );
+		String &operator=( std::wstring const &str );
 		int compare( ColumnItem const &rhs ) const override;
 
 		inline wxString to_string( ) const override {

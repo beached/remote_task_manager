@@ -55,6 +55,24 @@ namespace daw {
 		return 0;
 	}
 
+	String::String( wxString const &str )
+		: value( str ) {
+	}
+
+	String::String( std::wstring const &str )
+		: value( str ) {
+	}
+
+	String &String::operator=( wxString const &str ) {
+		value = str;
+		return *this;
+	}
+
+	String &String::operator=( std::wstring const &str ) {
+		value = str;
+		return *this;
+	}
+
 	int String::compare( ColumnItem const &rhs ) const {
 		auto const &val = dynamic_cast<String const &>( rhs );
 		auto const rlen = std::min( value.size( ), val.value.size( ) );
@@ -71,12 +89,12 @@ namespace daw {
 		return result;
 	}
 
-	wxString to_wstring( Memory value ) {
-		if( value.value < 1024ULL ) {
-			return std::to_wstring( value.value ) + L"B";
+	wxString memory_value_to_wstring( uint64_t value ) {
+		if( value < 1024ULL ) {
+			return std::to_wstring( value ) + L"B";
 		}
 		// Waiting until here accounts for when value.value > 2^53 as by
-		auto val = static_cast<double>( value.value ) / 1024.0;
+		auto val = static_cast<double>( value ) / 1024.0;
 		if( val < 1024.0 ) {
 			return std::to_wstring( lround( val ) ) + L"KB";
 		}
@@ -100,8 +118,18 @@ namespace daw {
 		return to_2digit_dec( val ) + L"EB";
 	}
 
+	Memory::Memory( uint64_t v )
+	  : value( v )
+	  , str_value( memory_value_to_wstring( v ) ) {}
+
+	Memory &Memory::operator=( uint64_t v ) {
+		value = v;
+		str_value = memory_value_to_wstring( v );
+		return *this;
+	}
+
 	wxString Memory::to_string( ) const {
-		return to_wstring( *this );
+		return str_value;
 	}
 
 	int Date::compare( ColumnItem const &rhs ) const {
@@ -115,16 +143,32 @@ namespace daw {
 		return 0;
 	}
 
-	wxString Date::to_string( ) const {
-		switch( date_format ) {
-		case date_formats::DateOnly:
-			return value.FormatISODate( );
-		case date_formats::TimeOnly:
-			return value.FormatTime( );
-		case date_formats::Combined:
-		default:
-			return value.Format( L"%Y-%m-%d %H:%M" );
+	namespace {
+		wxString to_date_string( Date::date_formats date_format, wxDateTime const & value ) {
+			switch( date_format ) {
+			case Date::date_formats::DateOnly:
+				return value.FormatISODate( );
+			case Date::date_formats::TimeOnly :
+				return value.FormatTime( );
+			case Date::date_formats::Combined:
+			default:
+				return value.Format( L"%Y-%m-%d %H:%M" );
+			}
 		}
+	} // namespace
+
+	wxString Date::to_string( ) const {
+		return str_value;
 	}
 
+	Date::Date( wxDateTime tp, date_formats fmt )
+	  : value( tp )
+	  , date_format( fmt )
+		, str_value( daw::to_date_string( date_format, value ) ) {}
+
+	Date &Date::operator=( wxDateTime v ) {
+		value = v;
+		str_value = daw::to_date_string( date_format, value );
+		return *this;
+	}
 } // namespace daw
