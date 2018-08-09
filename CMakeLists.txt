@@ -18,6 +18,8 @@ set( HEADER_FILES
 	${HEADER_FOLDER}/daw/daw_helpers.h
 	${HEADER_FOLDER}/daw/remote_task_management.h
 	${HEADER_FOLDER}/daw/remote_task_management_frame.h
+	${HEADER_FOLDER}/daw/wmi_exec.h
+	${HEADER_FOLDER}/daw/wmi_impl.h
 	${HEADER_FOLDER}/daw/wmi_process.h
 	${HEADER_FOLDER}/daw/wmi_process_table.h
 	${HEADER_FOLDER}/daw/variant_visit.h
@@ -27,6 +29,7 @@ set( SOURCE_FILES
 	${SOURCE_FOLDER}/column_items.cpp
 	${SOURCE_FOLDER}/remote_task_management.cpp
 	${SOURCE_FOLDER}/remote_task_management_frame.cpp
+	${SOURCE_FOLDER}/wmi_impl.cpp
 	${SOURCE_FOLDER}/wmi_process.cpp
 	${SOURCE_FOLDER}/wmi_process_table.cpp
 )

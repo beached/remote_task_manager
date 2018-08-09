@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
+#include <future>
 #include <vector>
 #include <wx/menu.h>
 #include <wx/string.h>
@@ -31,8 +32,56 @@
 
 namespace daw {
 	namespace remote_task_management_frame_event_ids {
-		enum event_ids { id_open_remote = 1 };
+		enum event_ids { id_open_remote = 1, id_close_by_pid, id_close_by_name };
 	}
+
+	namespace {
+		template<typename R>
+		bool is_ready( std::future<R> const &f ) noexcept {
+			try {
+				return f.wait_for( std::chrono::seconds( 0 ) ) ==
+				       std::future_status::ready;
+			} catch( ... ) {
+				// Return true so that we stop waiting and any exceptions would be
+				// propegated
+				return true;
+			}
+		}
+
+		auto grid_update_timer( wxTimer *tmr, wmi_process_table *tbl,
+		                        wxGrid *dg ) noexcept {
+			return [ tmr, tbl, dg, has_data = std::shared_ptr<std::future<void>>( ) ](
+			  wxTimerEvent & ) mutable {
+				if( !has_data ) {
+					// Timer has expired and we haven't tried to reteive any data yet
+					has_data = std::make_shared<std::future<void>>(
+					  std::async( [tbl = tbl]( ) { tbl->update_data( ); } ) );
+					tmr->StartOnce( 500 );
+				} else if( !is_ready( *has_data ) ) {
+					// We have requested data but it has not shown up yet
+					tmr->StartOnce( 250 );
+				} else {
+					// We have data, process it
+					try {
+						// Force any exceptions to throw by running get( ) on future
+						has_data->get( );
+						dg->ForceRefresh( );
+						tmr->StartOnce( 1700 );
+					} catch( ... ) {
+						// TODO put error message
+						dg->SetTable( nullptr );
+						tmr->Stop( );
+					}
+					has_data.reset( );
+				}
+			};
+		}
+		uint32_t to_uint32( wxString const &str ) {
+			unsigned long result = 0xDEADBEEF;
+			str.ToULong( &result );
+			return static_cast<uint32_t>( result );
+		}
+	} // namespace
 
 	void remote_task_management_frame::add_page( wxString const &host ) {
 		try {
@@ -50,20 +99,55 @@ namespace daw {
 				dg->Bind( wxEVT_GRID_COL_SORT, [tbl]( wxGridEvent &event ) {
 					tbl->sort_column( event.GetCol( ) );
 				} );
+
+				struct popup_data_t {
+					uint32_t pid;
+					wxString name;
+				};
+				dg->Bind( wxEVT_GRID_CELL_RIGHT_CLICK, [tbl, dg]( wxGridEvent &event ) {
+					constexpr auto const pid_col =
+					  static_cast<int>( wmi_process::column_number::ProcessId );
+					constexpr auto const name_col =
+					  static_cast<int>( wmi_process::column_number::Name );
+
+					auto const pid = tbl->GetValue( event.GetRow( ), pid_col );
+					auto const name = tbl->GetValue( event.GetRow( ), name_col );
+					
+					auto const data =
+					  static_cast<void *>( new popup_data_t{to_uint32( pid ), name} );
+
+					auto menu = new wxMenu( );
+					menu->SetClientData( data );
+					auto mnu1 = menu->Append(
+					  remote_task_management_frame_event_ids::id_close_by_pid,
+					  L"Close pid " + pid );
+					mnu1->SetId( 0 );
+					auto mnu2 = menu->Append(
+					  remote_task_management_frame_event_ids::id_close_by_name,
+					  L"Close all " + name );
+					mnu2->SetId( 1 );
+
+					auto point = event.GetPosition( );
+					dg->PopupMenu( menu, event.GetPosition( ) );
+				} );
+
+				dg->Bind(
+				  wxEVT_COMMAND_MENU_SELECTED,
+				  [host]( wxCommandEvent const &event ) {
+					  auto const source_menu =
+					    dynamic_cast<wxMenu *>( event.GetEventObject( ) );
+					  auto const data = std::unique_ptr<popup_data_t>(
+					    static_cast<popup_data_t *>( source_menu->GetClientData( ) ) );
+					  wxString const msg = L"Right click from " + std::to_wstring( data->pid ) +
+					                 L' ' + data->name; 
+						terminate_process_by_pid( host.ToStdWstring( ), data->pid );
+				  },
+				  remote_task_management_frame_event_ids::id_close_by_pid );
+
 				auto tmr = new wxTimer( this );
-				this->Bind( wxEVT_TIMER,
-				            [tmr, tbl, dg]( wxTimerEvent &event ) {
-					            try {
-						            tbl->update_data( );
-						            dg->ForceRefresh( );
-					            } catch( ... ) {
-												// TODO put error message
-						            dg->SetTable( nullptr );
-						            tmr->Stop( );
-					            }
-				            },
+				this->Bind( wxEVT_TIMER, grid_update_timer( tmr, tbl, dg ),
 				            tmr->GetId( ) );
-				tmr->Start( 1500 );
+				tmr->StartOnce( 2500 );
 				if( host == L"." ) {
 					m_notebook->AddPage( dg, L"local machine", true );
 				} else {

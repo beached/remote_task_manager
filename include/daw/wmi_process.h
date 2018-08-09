@@ -26,18 +26,12 @@
 #include <cstdint>
 #include <iomanip>
 #include <string>
-#include <variant>
 #include <vector>
 #include <wx/string.h>
 
 #include "column_items.h"
 
 namespace daw {
-	struct wmi_error_t {
-		std::wstring message;
-		long code;
-	};
-
 	namespace impl {
 		inline std::wstring &&to_wstring( std::wstring &&str ) noexcept {
 			return std::move( str );
@@ -49,6 +43,8 @@ namespace daw {
 	} // namespace impl
 
 	struct wmi_process {
+		wmi_process( ) noexcept = default;
+
 		static std::array<wxString, 14> const column_names;
 		enum class column_number : int {
 			Name,
@@ -120,5 +116,8 @@ namespace daw {
 		}
 	};
 
-	std::vector<wmi_process> get_wmi_win32_process( std::wstring const &machine = L"" );
+	std::vector<wmi_process>
+	get_wmi_win32_process( std::wstring const &machine = L"" );
+
+	void terminate_process_by_pid( std::wstring const &machine, uint32_t pid );
 } // namespace daw

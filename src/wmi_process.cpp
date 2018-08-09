@@ -32,6 +32,7 @@
 #include <wx/string.h>
 
 #include "daw/variant_visit.h"
+#include "daw/wmi_impl.h"
 #include "daw/wmi_process.h"
 
 #pragma comment( lib, "wbemuuid.lib" )
@@ -65,123 +66,26 @@ namespace daw {
 	}( );
 
 	namespace {
-		struct wmi_state_co {
-			bool has_init = false;
+		template<size_t n>
+		std::wstring to_wstring( wchar_t const ( &str )[n] ) {
+			return str;
+		}
 
-			wmi_state_co( DWORD const dwCoInit ) {
-				if( auto const hres = CoInitializeEx( nullptr, dwCoInit );
-				    FAILED( hres ) ) {
-					throw wmi_error_t{std::wstring( L"Failed to init COM library" ),
-					                  hres};
-				}
-				has_init = true;
-			}
+		template<size_t n>
+		std::wstring to_wstring( wchar_t ( &str )[n] ) {
+			return str;
+		}
 
-			~wmi_state_co( ) {
-				if( std::exchange( has_init, false ) ) {
-					CoUninitialize( );
-				}
-			}
-		};
+		constexpr wchar_t to_wstring( wchar_t c ) noexcept {
+			return c;
+		}
 
-		struct wmi_state_t {
-			CComPtr<IWbemLocator> locator = nullptr;
-			CComPtr<IWbemServices> service = nullptr;
-			wmi_state_co init;
-
-			wmi_state_t( wmi_state_t && ) noexcept = default;
-			wmi_state_t &operator=( wmi_state_t && ) noexcept = default;
-			wmi_state_t( wmi_state_t const & ) = delete;
-			wmi_state_t &operator=( wmi_state_t const & ) = delete;
-			~wmi_state_t( ) = default;
-
-			wmi_state_t( DWORD const dwCoInit )
-			  : init( dwCoInit ) {
-
-				static auto const sec_res = []( ) {
-					// Can only be called once per process
-					auto const hres = CoInitializeSecurity(
-					  nullptr,
-					  -1,                          // COM authentication
-					  nullptr,                     // Authentication services
-					  nullptr,                     // Reserved
-					  RPC_C_AUTHN_LEVEL_DEFAULT,   // Default authentication
-					  RPC_C_IMP_LEVEL_IMPERSONATE, // Default Impersonation
-					  nullptr,                     // Authentication info
-					  EOAC_NONE,                   // Additional capabilities
-					  nullptr                      // Reserved
-					);
-					if( FAILED( hres ) ) {
-						throw wmi_error_t{std::wstring( L"Failed to initialize security" ),
-						                  hres};
-					}
-					return hres;
-				}( );
-				auto hres = CoCreateInstance( CLSID_WbemLocator, nullptr,
-				                              CLSCTX_INPROC_SERVER, IID_IWbemLocator,
-				                              reinterpret_cast<LPVOID *>( &locator ) );
-
-				if( FAILED( hres ) ) {
-					CoUninitialize( );
-					throw wmi_error_t{
-					  std::wstring( L"Failed to create IWbemLocator object" ), hres};
-				}
-			}
-
-			void connect( std::wstring const &path, std::wstring machine = L"" ) {
-				if( machine.empty( ) ) {
-					machine = path;
-				} else {
-					machine = L"\\\\" + machine + L"\\" + path;
-				}
-
-				auto const result = locator->ConnectServer(
-				  _bstr_t( machine.c_str( ) ), // Object path of WMI namespace
-				  nullptr,                     // User name. NULL = current user
-				  nullptr,                     // User password. NULL = current
-				  nullptr,                     // Locale. NULL indicates current
-				  0,                           // Security flags.
-				  nullptr,                     // Authority (for example, Kerberos)
-				  nullptr,                     // Context object
-				  &service                     // pointer to IWbemServices proxy
-				);
-				if( FAILED( result ) ) {
-					throw wmi_error_t{std::wstring( L"Could not connect" ), result};
-				}
-				set_proxy_blanket( );
-			}
-
-			void set_proxy_blanket( ) {
-				auto const result =
-				  CoSetProxyBlanket( service,           // Indicates the proxy to set
-				                     RPC_C_AUTHN_WINNT, // RPC_C_AUTHN_xxx
-				                     RPC_C_AUTHZ_NONE,  // RPC_C_AUTHZ_xxx
-				                     nullptr,           // Server principal name
-				                     RPC_C_AUTHN_LEVEL_CALL, // RPC_C_AUTHN_LEVEL_xxx
-				                     RPC_C_IMP_LEVEL_IMPERSONATE, // RPC_C_IMP_LEVEL_xxx
-				                     nullptr,                     // client identity
-				                     EOAC_NONE                    // proxy capabilities
-				  );
-				if( FAILED( result ) ) {
-					throw wmi_error_t{std::wstring( L"Could not set proxy blanket" ),
-					                  result};
-				}
-			}
-
-			CComPtr<IEnumWbemClassObject> query( std::wstring const &query_str ) {
-				CComPtr<IEnumWbemClassObject> result;
-				auto const hres = service->ExecQuery(
-				  bstr_t( "WQL" ), bstr_t( query_str.c_str( ) ),
-				  WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, nullptr,
-				  &result );
-
-				if( FAILED( hres ) ) {
-					throw wmi_error_t{std::wstring( L"Query for Win32_Process failed" ),
-					                  hres};
-				}
-				return result;
-			}
-		};
+		template<typename... Args>
+		std::wstring fmtw( Args &&... args ) {
+			using impl::to_wstring;
+			using std::to_wstring;
+			return ( to_wstring( std::forward<Args>( args ) ) + ... );
+		}
 
 		CComVariant get_property( CComPtr<IWbemClassObject> const &obj,
 		                          std::wstring const &property ) {
@@ -222,18 +126,19 @@ namespace daw {
 		struct unsigned_from_bstr {
 			constexpr UnsignedInteger operator( )( BSTR str ) const noexcept {
 				auto const first = &str[0];
-				return from_char_range<UnsignedInteger>( first, first + SysStringLen( str ) );
+				return from_char_range<UnsignedInteger>( first,
+				                                         first + SysStringLen( str ) );
 			}
 		};
 
 		struct from_variant_date {
 			wxDateTime operator( )( DATE var_dte ) const {
-				SYSTEMTIME st = {0};
+				SYSTEMTIME st{};
 				auto const ret_val = VariantTimeToSystemTime( var_dte, &st );
 				if( ret_val == FALSE ) {
 					throw std::runtime_error( "Error converting DATE to wxDateTime" );
 				}
-				std::tm tm = {0};
+				std::tm tm{};
 				tm.tm_sec = st.wSecond;
 				tm.tm_min = st.wMinute;
 				tm.tm_hour = st.wHour;
@@ -313,6 +218,10 @@ namespace daw {
 		template<typename Enumerator, typename OutputIterator, typename Function>
 		void transform( Enumerator &&enumerator, OutputIterator iter,
 		                Function &&func ) {
+			static_assert(
+			  std::is_invocable_v<Function, CComPtr<IWbemClassObject>>,
+			  "Function must be callable with CComPtr<IWbemClassObject>" );
+
 			while( enumerator ) {
 				CComPtr<IWbemClassObject> current_record;
 				unsigned long record_count = 0;
@@ -323,6 +232,25 @@ namespace daw {
 					break;
 				}
 				*iter++ = func( current_record );
+			}
+		}
+
+		template<typename Enumerator, typename Function>
+		void for_each( Enumerator &&enumerator, Function &&func ) {
+			static_assert(
+			  std::is_invocable_v<Function, CComPtr<IWbemClassObject>>,
+			  "Function must be callable with CComPtr<IWbemClassObject>" );
+
+			while( enumerator ) {
+				CComPtr<IWbemClassObject> current_record;
+				unsigned long record_count = 0;
+				auto const hr =
+				  enumerator->Next( WBEM_INFINITE, 1, &current_record, &record_count );
+				if( record_count == 0 || FAILED( hr ) ) {
+					// We have an error or no more records left
+					break;
+				}
+				func( current_record );
 			}
 		}
 	} // namespace
@@ -336,5 +264,52 @@ namespace daw {
 		transform( wmi_state.query( L"SELECT * FROM Win32_Process" ),
 		           std::back_inserter( result ), make_wmi_process{} );
 		return result;
+	}
+
+	void terminate_process_by_where( std::wstring const &machine,
+	                                 std::wstring const &where_clause ) {
+		wmi_state_t wmi_state( COINIT_APARTMENTTHREADED );
+		wmi_state.connect( L"ROOT\\CIMV2", machine );
+
+		CComPtr<IWbemClassObject> class_object;
+		auto result = wmi_state.service->GetObjectW(
+		  CComBSTR( L"Win32_Process" ), 0, nullptr, &class_object, nullptr );
+		if( FAILED( result ) ) {
+			// TODO
+			return;
+		}
+		CComPtr<IWbemClassObject> in_param_def;
+		CComPtr<IWbemClassObject> out_method;
+		result =
+		  class_object->GetMethod( L"Terminate", 0, &in_param_def, &out_method );
+
+		if( FAILED( result ) ) {
+			// TODO: could not get method
+			return;
+		}
+		CComPtr<IWbemClassObject> class_instance;
+		result = in_param_def->SpawnInstance( 0, &class_instance );
+		if( FAILED( result ) ) {
+			// TODO:
+		}
+
+		auto var_pid = CComVariant( static_cast<unsigned long>( 1 ) );
+		result = class_instance->Put( L"Reason", 0, &var_pid, 0 );
+		if( FAILED( result ) ) {
+			// TODO:
+		}
+
+		result = wmi_state.service->ExecMethod(
+		  CComBSTR( where_clause.size( ), where_clause.c_str( ) ),
+		  CComBSTR( L"Terminate" ), 0, nullptr, class_instance, nullptr, nullptr );
+		if( FAILED( result ) ) {
+			// TODO:
+		}
+	}
+
+	void terminate_process_by_pid( std::wstring const &machine, uint32_t pid ) {
+		    auto const where_clause = std::wstring( L"Win32_Process.Handle=\"" ) +
+		                       std::to_wstring( pid ) + L'"';
+		    terminate_process_by_where( machine, where_clause );
 	}
 } // namespace daw
