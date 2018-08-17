@@ -78,7 +78,7 @@ namespace daw {
 		}
 		uint32_t to_uint32( wxString const &str ) {
 			unsigned long result = 0xDEADBEEF;
-			str.ToULong( &result );
+			(void)str.ToULong( &result );
 			return static_cast<uint32_t>( result );
 		}
 	} // namespace
@@ -95,6 +95,7 @@ namespace daw {
 				}
 				dg->SetTable( tbl, true );
 				dg->HideRowLabels( );
+				dg->EnableEditing( false );	
 				dg->AutoSizeColumns( );
 				dg->Bind( wxEVT_GRID_COL_SORT, [tbl]( wxGridEvent &event ) {
 					tbl->sort_column( event.GetCol( ) );
@@ -127,7 +128,6 @@ namespace daw {
 					  L"Close all " + name );
 					mnu2->SetId( 1 );
 
-					auto point = event.GetPosition( );
 					dg->PopupMenu( menu, event.GetPosition( ) );
 				} );
 

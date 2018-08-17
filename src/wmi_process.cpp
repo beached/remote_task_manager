@@ -46,6 +46,7 @@ namespace daw {
 		result[static_cast<size_t>( column_number::ParentProcessId )] =
 		  L"Parent Process Id";
 		result[static_cast<size_t>( column_number::SessionId )] = L"Session Id";
+		result[static_cast<size_t>( column_number::Handle )] = L"Handle";
 		result[static_cast<size_t>( column_number::CreationDate )] =
 		  L"Creation Date";
 		result[static_cast<size_t>( column_number::ThreadCount )] = L"Thread Count";
@@ -93,7 +94,7 @@ namespace daw {
 			CComVariant v;
 			auto const hr = obj->Get( property.c_str( ), 0, &v, nullptr, nullptr );
 			if( FAILED( hr ) ) {
-				throw wmi_error_t{L"Error retrieving property", hr};
+				throw wmi_error_t{"Error retrieving property", hr};
 			}
 			return v;
 		}
@@ -189,12 +190,16 @@ namespace daw {
 				item.name = get_wstring( record, L"Name" );
 				item.command_line = get_wstring( record, L"CommandLine" );
 				item.process_id = get_integer<uint32_t>( record, L"ProcessId" );
+
 				item.parent_process_id =
 				  get_integer<uint32_t>( record, L"ParentProcessId" );
+
 				item.session_id = get_integer<uint32_t>( record, L"SessionId" );
+				item.handle = get_wstring( record, L"Handle" );
 				item.creation_date = get_datetime( record, L"CreationDate" );
 				item.thread_count = get_integer<uint32_t>( record, L"ThreadCount" );
 				item.page_faults = get_integer<uint32_t>( record, L"PageFaults" );
+
 				item.page_file_usage =
 				  from_kilobytes( get_integer<uint64_t>( record, L"PageFileUsage" ) );
 
@@ -209,6 +214,7 @@ namespace daw {
 
 				item.read_transfer_count =
 				  get_integer<uint64_t>( record, L"ReadTransferCount" );
+
 				item.write_transfer_count =
 				  get_integer<uint64_t>( record, L"WriteTransferCount" );
 				return item;

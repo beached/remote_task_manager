@@ -51,6 +51,7 @@ namespace daw {
 			ProcessId,
 			ParentProcessId,
 			SessionId,
+			Handle,
 			CreationDate,
 			ThreadCount,
 			PageFaults,
@@ -67,6 +68,7 @@ namespace daw {
 		Integer<uint32_t> process_id;
 		Integer<uint32_t> parent_process_id;
 		Integer<uint32_t> session_id;
+		String handle;
 		Date creation_date;
 		// Resources
 		Integer<uint32_t> thread_count;
@@ -91,6 +93,8 @@ namespace daw {
 				return parent_process_id;
 			case column_number::SessionId:
 				return session_id;
+			case column_number::Handle:
+				return handle;
 			case column_number::CreationDate:
 				return creation_date;
 			case column_number::ThreadCount:
@@ -111,8 +115,9 @@ namespace daw {
 				return write_transfer_count;
 			case column_number::CommandLine:
 				return command_line;
+			default:
+				std::terminate( );
 			}
-			std::terminate( );
 		}
 	};
 

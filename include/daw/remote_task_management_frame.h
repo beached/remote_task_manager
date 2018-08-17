@@ -25,11 +25,9 @@
 #include <vector>
 #include <wx/event.h>
 #include <wx/frame.h>
-#include <wx/grid.h>
 #include <wx/notebook.h>
 #include <wx/string.h>
-
-#include "wmi_process_table.h"
+#include <wx/timer.h>
 
 namespace daw {
 	class remote_task_management_frame : public wxFrame {

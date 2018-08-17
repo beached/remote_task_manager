@@ -25,13 +25,15 @@
 
 #include <atlcomcli.h>
 #include <comdef.h>
+#include <exception>
 #include <string>
-#include <wbemidl.h>
+#include <Wbemidl.h>
 
 namespace daw {
-	struct wmi_error_t {
-		std::wstring message;
+	struct wmi_error_t: std::exception {
 		long code;
+
+		wmi_error_t( char const * msg, long err_code );
 	};
 
 	struct wmi_state_co {
@@ -56,7 +58,7 @@ namespace daw {
 		wmi_state_t &operator=( wmi_state_t const & ) = delete;
 		~wmi_state_t( ) = default;
 
-		wmi_state_t( DWORD const dwCoInit );
+		explicit wmi_state_t( DWORD co_init );
 		void connect( std::wstring const &path, std::wstring machine = L"" ); 
 		void set_proxy_blanket( ); 
 		CComPtr<IEnumWbemClassObject> query( std::wstring const &query_str ); 

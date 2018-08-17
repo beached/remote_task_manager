@@ -28,7 +28,7 @@
 #include <variant>
 #include <wtypes.h>
 
-#include "daw_overload.h"
+#include <daw/daw_overload.h>
 
 namespace daw {
 	// A visitor for Win32 VARIANT
@@ -99,7 +99,7 @@ namespace daw {
 
 		// Others
 		template<typename Result, typename Value, typename Visitor,
-		         typename std::enable_if_t<(not_void<Result> &&
+		         std::enable_if_t<(not_void<Result> &&
 		                                    std::is_invocable_v<Visitor, Value>),
 		                                   std::nullptr_t> = nullptr>
 		constexpr Result variant_visitor( Value &&value, Visitor &&visitor ) {
@@ -109,7 +109,7 @@ namespace daw {
 
 		// void result
 		template<typename Result, typename Value, typename Visitor,
-		         typename std::enable_if_t<(is_void<Result> &&
+		         std::enable_if_t<(is_void<Result> &&
 		                                    std::is_invocable_v<Visitor, Value>),
 		                                   std::nullptr_t> = nullptr>
 		constexpr void variant_visitor( Value &&value, Visitor &&visitor ) {

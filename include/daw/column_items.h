@@ -45,7 +45,7 @@ namespace daw {
 
 		Memory( ) = default;
 
-		Memory( uint64_t v );
+		explicit Memory( uint64_t v );
 
 		Memory &operator=( uint64_t v );
 
@@ -57,8 +57,8 @@ namespace daw {
 		enum class date_formats { Combined, DateOnly, TimeOnly };
 
 		wxDateTime value = {};
-		wxString str_value = L"";
 		date_formats date_format = date_formats::Combined;
+		wxString str_value = L"";
 
 		Date( ) = default;
 
@@ -107,10 +107,10 @@ namespace daw {
 		wxString value = L"";
 
 		String( ) = default;
-		explicit String( wxString const &str );
-		explicit String( std::wstring const &str );
-		String &operator=( wxString const &str );
-		String &operator=( std::wstring const &str );
+		explicit String( wxString && str );
+        explicit String( wxString const & str );
+		explicit String( std::wstring_view str );
+		String &operator=( std::wstring_view str );
 		int compare( ColumnItem const &rhs ) const override;
 
 		inline wxString to_string( ) const override {

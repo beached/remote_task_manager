@@ -55,21 +55,20 @@ namespace daw {
 		return 0;
 	}
 
-	String::String( wxString const &str )
-		: value( str ) {
+	String::String( wxString && str )
+			: value( std::move( str ) ) {
 	}
 
-	String::String( std::wstring const &str )
-		: value( str ) {
+	String::String( wxString const & str )
+	  : value( str ) {
 	}
 
-	String &String::operator=( wxString const &str ) {
-		value = str;
-		return *this;
+	String::String( std::wstring_view str )
+		: value( str.data( ), str.size( ) ) {
 	}
 
-	String &String::operator=( std::wstring const &str ) {
-		value = str;
+	String &String::operator=( std::wstring_view str ) {
+		value = wxString( str.data( ), str.size( ) );
 		return *this;
 	}
 

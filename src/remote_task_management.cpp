@@ -25,7 +25,8 @@
 #include <wx/cmdline.h>
 #include <wx/wx.h>
 
-#include "daw/daw_helpers.h"
+#include <daw/daw_array.h>
+
 #include "daw/remote_task_management.h"
 #include "daw/remote_task_management_frame.h"
 
@@ -34,7 +35,8 @@ namespace daw {
 		if( !wxApp::OnInit( ) ) {
 			return false;
 		}
-		auto frame = new remote_task_management_frame( m_remote_hosts, L"Remote Task Management" );
+		auto frame = new remote_task_management_frame( m_remote_hosts,
+		                                               L"Remote Task Management" );
 		frame->Show( true );
 		return true;
 	}
@@ -47,8 +49,7 @@ namespace daw {
 		    wxCMD_LINE_OPTION_HELP},
 
 		  T{wxCMD_LINE_PARAM, nullptr, nullptr,
-		    "host(s) (. can be used for local machine)\n",
-		    wxCMD_LINE_VAL_STRING,
+		    "host(s) (. can be used for local machine)\n", wxCMD_LINE_VAL_STRING,
 		    wxCMD_LINE_PARAM_OPTIONAL | wxCMD_LINE_PARAM_MULTIPLE},
 
 		  T{wxCMD_LINE_NONE} );
