@@ -67,13 +67,13 @@ namespace daw {
 	}( );
 
 	namespace {
-		template<size_t n>
-		std::wstring to_wstring( wchar_t const ( &str )[n] ) {
+		template<size_t N>
+		std::wstring to_wstring( wchar_t const ( &str )[N] ) {
 			return str;
 		}
 
-		template<size_t n>
-		std::wstring to_wstring( wchar_t ( &str )[n] ) {
+		template<size_t N>
+		std::wstring to_wstring( wchar_t ( &str )[N] ) {
 			return str;
 		}
 

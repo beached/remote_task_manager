@@ -29,10 +29,12 @@
 #include <wx/string.h>
 #include <wx/timer.h>
 
+#include <daw/daw_utility.h>
+
 namespace daw {
 	class remote_task_management_frame : public wxFrame {
 		std::unique_ptr<wxTimer> m_tmr = nullptr;
-		wxNotebook *m_notebook = nullptr; // unowned
+		daw::non_owning_ptr<wxNotebook *> m_notebook = nullptr; 
 
 		void add_page( wxString const &host );
 		void setup_handlers( );

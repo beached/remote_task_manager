@@ -21,6 +21,7 @@
 // SOFTWARE.
 //
 #include <future>
+#include <memory>
 #include <vector>
 #include <wx/menu.h>
 #include <wx/string.h>
@@ -50,8 +51,8 @@ namespace daw {
 
 		auto grid_update_timer( wxTimer *tmr, wmi_process_table *tbl,
 		                        wxGrid *dg ) noexcept {
-			return [ tmr, tbl, dg, has_data = std::shared_ptr<std::future<void>>( ) ](
-			  wxTimerEvent & ) mutable {
+			return [tmr, tbl, dg, has_data = std::shared_ptr<std::future<void>>( )](
+			         wxTimerEvent & ) mutable {
 				if( !has_data ) {
 					// Timer has expired and we haven't tried to reteive any data yet
 					has_data = std::make_shared<std::future<void>>(
@@ -95,7 +96,7 @@ namespace daw {
 				}
 				dg->SetTable( tbl, true );
 				dg->HideRowLabels( );
-				dg->EnableEditing( false );	
+				dg->EnableEditing( false );
 				dg->AutoSizeColumns( );
 				dg->Bind( wxEVT_GRID_COL_SORT, [tbl]( wxGridEvent &event ) {
 					tbl->sort_column( event.GetCol( ) );
@@ -113,7 +114,7 @@ namespace daw {
 
 					auto const pid = tbl->GetValue( event.GetRow( ), pid_col );
 					auto const name = tbl->GetValue( event.GetRow( ), name_col );
-					
+
 					auto const data =
 					  static_cast<void *>( new popup_data_t{to_uint32( pid ), name} );
 
@@ -138,9 +139,10 @@ namespace daw {
 					    dynamic_cast<wxMenu *>( event.GetEventObject( ) );
 					  auto const data = std::unique_ptr<popup_data_t>(
 					    static_cast<popup_data_t *>( source_menu->GetClientData( ) ) );
-					  wxString const msg = L"Right click from " + std::to_wstring( data->pid ) +
-					                 L' ' + data->name; 
-						terminate_process_by_pid( host.ToStdWstring( ), data->pid );
+					  wxString const msg = L"Right click from " +
+					                       std::to_wstring( data->pid ) + L' ' +
+					                       data->name;
+					  terminate_process_by_pid( host.ToStdWstring( ), data->pid );
 				  },
 				  remote_task_management_frame_event_ids::id_close_by_pid );
 

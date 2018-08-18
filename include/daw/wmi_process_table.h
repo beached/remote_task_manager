@@ -25,6 +25,8 @@
 #include <wx/grid.h>
 #include <wx/string.h>
 
+#include <daw/daw_validated.h>
+
 #include "wmi_process.h"
 
 namespace daw {
